@@ -1,0 +1,17 @@
+{
+  "name": "깡깡 전설무기 대장간",
+  "short_name": "깡깡 대장간",
+  "description": "망치로 두드려 무기를 만들고, 같은 무기를 합쳐 전설 등급까지 키우는 방치형 대장간 게임",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#17130e",
+  "theme_color": "#ff8a00",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
