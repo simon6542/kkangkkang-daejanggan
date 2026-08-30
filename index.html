@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>깡깡 전설무기 대장간</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <meta name="theme-color" content="#ff8a00" />
+  <style>
+    :root {
+      --bg: #17130e;
+      --panel: #241d14;
+      --panel2: #2e2519;
+      --line: #4a3a24;
+      --amber: #ff8a00;
+      --gold: #ffc94d;
+      --text: #f2e7d5;
+      --dim: #9b8a6f;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+    /* 난이도 세계 테마 */
+    body.diff2 { --bg: #100c1c; --panel: #1a1330; --panel2: #22183f; --line: #3b2a63; --amber: #9d6bff; --gold: #c9a8ff; }
+    body.diff3 { --bg: #190806; --panel: #26100c; --panel2: #301410; --line: #5e2a1e; --amber: #ff4d2b; --gold: #ffb08a; }
+    html, body { height: 100%; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: Pretendard, -apple-system, "Apple SD Gothic Neo", sans-serif;
+      overflow: hidden; touch-action: manipulation;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    #app { max-width: 440px; margin: 0 auto; height: 100%; display: flex; flex-direction: column; padding: 12px; gap: 10px; overflow-y: auto; }
+    #app > * { flex-shrink: 0; } /* 세로 공간 부족 시 패널이 찌그러져 잘리는 대신 스크롤 */
+
+    /* 상단 재화 */
+    .hud { display: flex; justify-content: space-between; align-items: baseline; }
+    .hud .coins { font-size: 28px; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums; }
+    .hud .rate { font-size: 13px; color: var(--dim); font-variant-numeric: tabular-nums; }
+    .hud .rate b { color: var(--amber); }
+    #rateNote { font-size: 11px; color: var(--dim); }
+
+    /* 모루(제작) */
+    #anvil {
+      position: relative; border: 1.5px solid var(--line); border-radius: 16px;
+      background: radial-gradient(120% 120% at 50% 0%, var(--panel2), var(--panel));
+      padding: 14px; text-align: center; cursor: pointer;
+    }
+    #anvil .emoji { font-size: 52px; line-height: 1.2; display: inline-block; transition: transform .05s; }
+    #anvil.striking .emoji { transform: scale(.9) rotate(-8deg); }
+    #anvil .label { font-size: 13px; color: var(--dim); margin-top: 2px; }
+    #forgeBarWrap { height: 10px; border-radius: 6px; background: #120e09; margin-top: 10px; overflow: hidden; }
+    #forgeBar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--amber), var(--gold)); border-radius: 6px; transition: width .08s; }
+
+    /* 격자 */
+    #grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .slot {
+      aspect-ratio: 1; border: 1.5px dashed var(--line); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center; position: relative;
+      background: rgba(0,0,0,.18);
+    }
+    .slot.drop-ok { border-color: var(--gold); border-style: solid; background: rgba(255,138,0,.12); }
+    .weapon {
+      width: 88%; height: 88%; border-radius: 10px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 1px; cursor: grab; position: relative;
+      border: 1.5px solid rgba(255,255,255,.14);
+      box-shadow: 0 3px 8px rgba(0,0,0,.35);
+      touch-action: none;
+    }
+    .weapon.selected { outline: 2.5px solid var(--gold); }
+    .weapon .icon { font-size: 26px; line-height: 1; pointer-events: none; display: flex; align-items: center; justify-content: center; }
+    .weapon .icon svg { width: 30px; height: 30px; }
+    #equipSlot .weapon .icon svg { width: 24px; height: 24px; }
+    .weapon .tier { font-size: 10px; font-weight: 800; opacity: .95; pointer-events: none; }
+    .weapon .durbar { width: 70%; height: 3px; border-radius: 2px; background: rgba(0,0,0,.4); overflow: hidden; pointer-events: none; margin-top: 2px; }
+    .weapon .durbar i { display: block; height: 100%; border-radius: 2px; }
+    .weapon.pop { animation: pop .32s cubic-bezier(.2,1.6,.4,1); }
+    @keyframes pop { 0% { transform: scale(.2); } 100% { transform: scale(1); } }
+    .weapon.mergeburst { animation: burst .38s ease-out; }
+    @keyframes burst { 0% { transform: scale(1.55); filter: brightness(2.2); } 100% { transform: scale(1); filter: none; } }
+    #ghost { position: fixed; pointer-events: none; z-index: 40; width: 64px; height: 64px; opacity: .85; display: none; }
+
+    /* 업그레이드 */
+    #shop { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .up {
+      border: 1.5px solid var(--line); border-radius: 12px; background: var(--panel);
+      padding: 8px 6px; text-align: center; cursor: pointer; font-size: 12px;
+    }
+    .up b { display: block; font-size: 13px; }
+    .up .cost { color: var(--gold); font-weight: 700; font-variant-numeric: tabular-nums; }
+    .up.cant { opacity: .38; }
+
+    /* 떠다니는 숫자·파편 */
+    .float { position: fixed; z-index: 50; pointer-events: none; font-weight: 800; color: var(--gold); animation: rise .8s ease-out forwards; }
+    @keyframes rise { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-46px); } }
+    .spark { position: fixed; z-index: 45; pointer-events: none; width: 5px; height: 5px; border-radius: 50%; background: var(--gold); animation: fly .5s ease-out forwards; }
+    @keyframes fly { 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.3); } }
+    body.shake #app { animation: shake .12s; }
+    @keyframes shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+
+    /* 복귀 보상 모달 */
+    #back, #bonus { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.72); display: none; align-items: center; justify-content: center; }
+    #bonus .card { background: var(--panel2); border: 1.5px solid var(--gold); border-radius: 18px; padding: 26px 30px; text-align: center; max-width: 320px; }
+    #bonus h2 { font-size: 17px; margin-bottom: 6px; }
+    #bonus .amt { font-size: 26px; font-weight: 800; color: var(--gold); margin: 8px 0 2px; }
+    #bonus .sub { font-size: 12px; color: var(--dim); }
+    .btnrow { display: flex; gap: 8px; justify-content: center; margin-top: 14px; }
+    #bonus button { border: 0; border-radius: 12px; padding: 12px 18px; font-size: 14px; font-weight: 800; cursor: pointer; background: linear-gradient(180deg, var(--amber), #d96f00); color: #1a1206; }
+    #bonus button.ghostbtn { background: var(--panel); color: var(--text); border: 1.5px solid var(--line); }
+    #back .card { background: var(--panel2); border: 1.5px solid var(--line); border-radius: 18px; padding: 26px 30px; text-align: center; max-width: 300px; }
+    #back h2 { font-size: 17px; margin-bottom: 6px; }
+    #back .amt { font-size: 32px; font-weight: 800; color: var(--gold); margin: 8px 0 2px; }
+    #back .sub { font-size: 12px; color: var(--dim); margin-bottom: 16px; }
+    #back button { background: linear-gradient(180deg, var(--amber), #d96f00); color: #1a1206; border: 0; border-radius: 12px; padding: 12px 26px; font-size: 15px; font-weight: 800; cursor: pointer; }
+    .hint { font-size: 11.5px; color: var(--dim); text-align: center; }
+    /* 원정 전투 */
+    #battle {
+      border: 1.5px solid var(--line); border-radius: 14px; background: var(--panel);
+      padding: 10px 12px; cursor: pointer;
+    }
+    .b-left { display: flex; align-items: center; gap: 12px; }
+    #monster { font-size: 40px; line-height: 1; display: inline-block; transition: transform .06s; }
+    #monster.hit { transform: scale(.85) rotate(6deg); filter: brightness(1.6); }
+    .b-info { flex: 1; }
+    .b-top { font-size: 13px; }
+    .b-top b { color: var(--amber); font-size: 15px; }
+    #mulBadge { font-size: 11px; color: var(--gold); margin-left: 6px; }
+    #hpWrap { height: 9px; border-radius: 6px; background: #120e09; margin: 6px 0 4px; overflow: hidden; }
+    #hpBar { height: 100%; width: 100%; background: linear-gradient(90deg, #e05656, #ff8a7a); border-radius: 6px; transition: width .12s; }
+    .b-sub { font-size: 10.5px; color: var(--dim); }
+    #battle.cleared { animation: melt .35s ease-out; }
+    #heatWrap { position: relative; width: 86px; height: 34px; border: 1.5px solid var(--line); border-radius: 10px; background: #120e09; overflow: hidden; flex: 0 0 auto; }
+    #heatBar { height: 100%; background: linear-gradient(90deg, #ff6a2b, var(--gold)); width: 100%; transition: width .15s; }
+    #heatLabel { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.7); }
+    #skillBtn {
+      border: 1.5px solid var(--gold); border-radius: 10px; padding: 8px 14px; font-size: 12.5px; font-weight: 800;
+      cursor: pointer; background: rgba(255, 201, 77, .1); color: var(--gold); width: 100%;
+    }
+    #skillBtn.active { background: linear-gradient(180deg, var(--amber), #d96f00); color: #1a1206; border-color: transparent; animation: pulse 1s infinite; }
+    #skillBtn.cool { opacity: .4; cursor: default; }
+    @keyframes pulse { 50% { filter: brightness(1.25); } }
+    #battle.weakened #monster { filter: hue-rotate(300deg) brightness(1.3); }
+    #bossGate { display: none; margin-top: 10px; padding-top: 10px; border-top: 1.5px dashed var(--line); text-align: center; }
+    #bossGate .bg-msg { font-size: 12px; color: var(--gold); margin-bottom: 8px; }
+    #bossGate button { border: 0; border-radius: 10px; padding: 10px 14px; font-size: 13px; font-weight: 800; cursor: pointer; background: linear-gradient(180deg, var(--amber), #d96f00); color: #1a1206; }
+    #bossGate button#bossAdBtn { background: var(--panel2); color: var(--gold); border: 1.5px solid var(--gold); }
+    #equipSlot {
+      flex: 0 0 auto; width: 62px; height: 62px; border: 1.5px dashed var(--gold);
+      border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      background: rgba(255, 201, 77, .07);
+    }
+    #equipSlot .eq-empty { font-size: 10px; color: var(--gold); text-align: center; line-height: 1.3; opacity: .8; }
+    #equipSlot.drop-ok { border-style: solid; background: rgba(255, 201, 77, .22); }
+    #equipSlot .weapon { width: 92%; height: 92%; cursor: default; }
+    #equipSlot .weapon .icon { font-size: 22px; }
+    #equipSlot .weapon .tier { font-size: 8.5px; }
+
+    .row2 { display: flex; align-items: center; gap: 10px; }
+    .row2 .hint { flex: 1; text-align: left; }
+    #furnace {
+      flex: 0 0 auto; display: flex; align-items: center; gap: 6px;
+      border: 1.5px dashed #7a3b1e; border-radius: 12px; padding: 8px 12px;
+      background: rgba(224, 86, 40, .08); color: #e08a5a;
+    }
+    #furnace .f-icon { font-size: 22px; }
+    #furnace .f-label { font-size: 10.5px; line-height: 1.25; }
+    #furnace.drop-ok { border-style: solid; border-color: #ff6a2b; background: rgba(255, 106, 43, .22); }
+    #furnace.melt { animation: melt .3s ease-out; }
+    @keyframes melt { 0% { transform: scale(1.15); filter: brightness(1.8); } 100% { transform: scale(1); filter: none; } }
+  </style>
+  <script type="module" crossorigin src="./assets/index-CgBN0ntD.js"></script>
+</head>
+<body>
+  <div id="app">
+    <div class="hud">
+      <div class="coins"><span id="coins">0</span> <span style="font-size:14px">골드</span></div>
+      <div class="rate">⛏️ 광석 <b id="ore">0</b><br>원정 수익 <b id="rate">0</b>/초<br><span id="rateNote"></span></div>
+    </div>
+
+    <div id="anvil">
+      <span class="emoji" id="anvilEmoji">🛠️</span>
+      <div class="label" id="forgeLabel">두드려서 무기 제작</div>
+      <div id="forgeBarWrap"><div id="forgeBar"></div></div>
+    </div>
+
+    <div id="battle">
+      <div class="b-left">
+        <span id="monster">🐀</span>
+        <div class="b-info">
+          <div class="b-top"><b id="stageNo">1</b> 스테이지 <span id="mulBadge"></span></div>
+          <div id="hpWrap"><div id="hpBar"></div></div>
+          <div class="b-sub" id="bSub">무기를 끌어다 출전시키고, 탭해서 공격</div>
+        </div>
+        <div id="equipSlot"><span class="eq-empty">출전<br>슬롯</span></div>
+      </div>
+      <div style="margin-top:8px; display:flex; gap:8px; align-items:center">
+        <div id="heatWrap" title="연타 열기"><div id="heatBar"></div><span id="heatLabel"></span></div>
+        <button id="skillBtn" style="flex:1">⚡ 약점 격파 — 15회 타격 ×2</button>
+      </div>
+      <div id="bossGate">
+        <div class="bg-msg" id="bossMsg"></div>
+        <div class="btnrow">
+          <button id="bossBtn">🎟️ 도전하기</button>
+          <button id="bossAdBtn">📺 광고 보고 도전권</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="grid"></div>
+    <div class="row2">
+      <div class="hint">같은 무기를 끌어다 겹치면 합쳐집니다 · T23부터는 3개를 모아야 올라갑니다</div>
+      <div id="furnace"><span class="f-icon">🔥</span><span class="f-label">용광로<br>끌어다 녹이기</span></div>
+    </div>
+
+    <div id="shop">
+      <div class="up" id="upDur"><b>🔧 내구도 충전</b>출전 칼 완전 수리<div class="cost"></div></div>
+      <div class="up" id="upAuto"><b>⚙️ 자동 망치</b><span class="udesc">초당 자동 타격 +1</span><div class="cost"></div></div>
+      <div class="up" id="upTier"><b>⭐ 시작 티어</b><span class="udesc">제작 무기 티어 +1</span><div class="cost"></div></div>
+      <div class="up" id="upOre"><b>⛏️ 광석 구매</b>제작 10회분 재료<div class="cost"></div></div>
+      <div class="up" id="upSlot"><b>🧰 창고 확장</b><span class="udesc">보관 칸 +1</span><div class="cost"></div></div>
+    </div>
+  </div>
+
+  <div id="ghost"></div>
+  <div id="bonus" class="modal"><div class="card">
+    <h2>🎁 보너스 스테이지 클리어!</h2>
+    <div class="sub" id="bonusDesc"></div>
+    <div class="amt" id="bonusAmt"></div>
+    <div class="btnrow">
+      <button id="bonusBtn" class="ghostbtn">받기</button>
+      <button id="bonusAdBtn">📺 광고 보고 2배</button>
+    </div>
+    <div class="sub" style="margin-top:8px">광고는 출시 후 연결 — 지금은 바로 지급돼요</div>
+  </div></div>
+
+  <div id="back"><div class="card">
+    <h2>⛏️ 원정대 귀환!</h2>
+    <div class="sub" id="backTime"></div>
+    <div class="amt" id="backAmt"></div>
+    <div class="sub">떠나 있는 동안 원정대가 벌어왔어요</div>
+    <button id="backBtn">수령하기</button>
+  </div></div>
+
+</body>
+</html>
